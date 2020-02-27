@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"regexp"
 	"strings"
 )
 
@@ -38,5 +39,12 @@ func (p *Proxy) Director(r *http.Request) {
 func (p *Proxy) getPort(host string) (string, bool) {
 	baseHost := strings.Replace(host, p.c.ListenAddress, "", 1)
 	usePort, hasPort := p.c.HostMap[baseHost]
+	if !hasPort {
+		for tryHost, tryPort := range p.c.HostMap {
+			if regexp.MustCompile(tryHost).MatchString(baseHost) {
+				return tryPort, true
+			}
+		}
+	}
 	return usePort, hasPort
 }

@@ -1,4 +1,4 @@
 listenAddress: ":8880"
 hostMap:
   www.cubex-local.com:  "8888"
-  fortifi.cubex-local.com:  "9091"
+  "fortifi.*\\.cubex\\-local\\.com":  "9090"
