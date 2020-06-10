@@ -1,4 +1,7 @@
 listenAddress: ":8880"
+tls: false
+certFile: server.crt
+keyFile: server.key
 hostMap:
   www.cubex-local.com:  "8888"
   subdomain.cubex-local.com:  "8889"
