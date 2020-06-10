@@ -4,6 +4,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"path"
 	"path/filepath"
 	"time"
 )
@@ -24,9 +25,9 @@ func (c *Config) reload() error {
 	}
 
 	err = yaml.Unmarshal(contents, c)
-	if err != nil && c.Tls {
-		c.TlsCertFile, _ = filepath.Rel(c.file, c.TlsCertFile)
-		c.TlsKeyFile, _ = filepath.Rel(c.file, c.TlsKeyFile)
+	if err == nil && c.Tls {
+		c.TlsCertFile, _ = filepath.Abs(path.Join(filepath.Dir(c.file), c.TlsCertFile))
+		c.TlsKeyFile, _ = filepath.Abs(path.Join(filepath.Dir(c.file), c.TlsKeyFile))
 	}
 	return err
 }
