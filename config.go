@@ -4,12 +4,16 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"time"
 )
 
 type Config struct {
 	HostMap       map[string]string `yaml:"hostMap"`
 	ListenAddress string            `yaml:"listenAddress"`
+	Tls           bool              `yaml:"tls"`
+	TlsCertFile   string            `yaml:"certFile"`
+	TlsKeyFile    string            `yaml:"keyFile"`
 	file          string
 }
 
@@ -19,7 +23,12 @@ func (c *Config) reload() error {
 		return err
 	}
 
-	return yaml.Unmarshal(contents, c)
+	err = yaml.Unmarshal(contents, c)
+	if err != nil && c.Tls {
+		c.TlsCertFile, _ = filepath.Rel(c.file, c.TlsCertFile)
+		c.TlsKeyFile, _ = filepath.Rel(c.file, c.TlsKeyFile)
+	}
+	return err
 }
 
 func LoadConfig(configFile string) (*Config, error) {

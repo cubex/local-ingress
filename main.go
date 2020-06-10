@@ -28,5 +28,8 @@ func main() {
 	httpServer := http.Server{Addr: cfg.ListenAddress, Handler: p}
 
 	log.Printf("Listening on %s", cfg.ListenAddress)
+	if cfg.Tls {
+		log.Fatal(httpServer.ListenAndServeTLS(cfg.TlsCertFile, cfg.TlsKeyFile))
+	}
 	log.Fatal(httpServer.ListenAndServe())
 }

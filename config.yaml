@@ -1,4 +1,7 @@
 listenAddress: ":8880"
+tls: true
+certFile: server.crt
+keyFile: server.key
 hostMap:
   www.cubex-local.com:  "8888"
   "fortifi.*\\.cubex\\-local\\.com":  "9090"
