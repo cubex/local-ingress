@@ -21,6 +21,9 @@ func NewProxy(config *Config) *Proxy {
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, hasPort := p.getPort(r.Host); hasPort {
+		if p.c.Tls {
+			r.Header.Add("X-Forwarded-Proto", "https")
+		}
 		p.P.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "The host you are trying to access has not yet been configured", http.StatusNotFound)

@@ -1,7 +1,7 @@
 listenAddress: ":8880"
 tls: false
-certFile: server.crt
-keyFile: server.key
+certFile: ../local-ingress-ssl/conf/live/cubex-local.com/fullchain.pem
+keyFile: ../local-ingress-ssl/conf/live/cubex-local.com/privkey.pem
 hostMap:
   www.cubex-local.com:  "8888"
   subdomain.cubex-local.com:  "8889"

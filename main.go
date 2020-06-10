@@ -29,6 +29,9 @@ func main() {
 
 	log.Printf("Listening on %s", cfg.ListenAddress)
 	if cfg.Tls {
+		log.Println("Serving with TLS")
+	}
+	if cfg.Tls {
 		log.Fatal(httpServer.ListenAndServeTLS(cfg.TlsCertFile, cfg.TlsKeyFile))
 	}
 	log.Fatal(httpServer.ListenAndServe())
