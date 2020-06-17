@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -33,7 +34,16 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) Director(r *http.Request) {
 	r.URL.Scheme = "http"
 	if usePort, hasPort := p.getPort(r.Host); hasPort {
-		r.URL.Host = strings.Replace(r.Host, p.c.ListenAddress, ":"+usePort, 1)
+		if strings.ContainsAny(usePort, ":.") {
+			remoteUrl, _ := url.Parse(usePort)
+			r.URL.Host = remoteUrl.Host
+			r.Host = remoteUrl.Host
+			if remoteUrl.Scheme != "" {
+				r.URL.Scheme = remoteUrl.Scheme
+			}
+		} else {
+			r.URL.Host = strings.Replace(r.Host, p.c.ListenAddress, ":"+usePort, 1)
+		}
 	} else {
 		log.Print(r.Host, " is not a supported host")
 	}
