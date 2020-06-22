@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/NYTimes/gziphandler"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -10,13 +11,19 @@ import (
 )
 
 type Proxy struct {
-	P *httputil.ReverseProxy
-	c *Config
+	P       *httputil.ReverseProxy
+	c       *Config
+	handler http.Handler
 }
 
 func NewProxy(config *Config) *Proxy {
 	p := &Proxy{c: config}
 	p.P = &httputil.ReverseProxy{Director: p.Director}
+	if config.GZip {
+		p.handler = gziphandler.GzipHandler(p.P)
+	} else {
+		p.handler = p.P
+	}
 	return p
 }
 
@@ -25,10 +32,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if p.c.Tls {
 			r.Header.Add("X-Forwarded-Proto", "https")
 		}
-		p.P.ServeHTTP(w, r)
+		p.handler.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "The host you are trying to access has not yet been configured", http.StatusNotFound)
 	}
+
 }
 
 func (p *Proxy) Director(r *http.Request) {

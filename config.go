@@ -12,6 +12,7 @@ import (
 type Config struct {
 	HostMap       map[string]string `yaml:"hostMap"`
 	ListenAddress string            `yaml:"listenAddress"`
+	GZip          bool              `yaml:"gzip"`
 	Tls           bool              `yaml:"tls"`
 	TlsCertFile   string            `yaml:"certFile"`
 	TlsKeyFile    string            `yaml:"keyFile"`
