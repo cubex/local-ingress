@@ -49,14 +49,12 @@ func main() {
 	var cfg *Config
 	for _, configFile := range configPaths {
 		info, err := os.Stat(configFile)
-		if !os.IsNotExist(err) {
-			if !info.IsDir() {
-				cfg, err = LoadConfig(configFile)
-				if err != nil {
-					log.Fatal(err.Error())
-				}
-				break
+		if !os.IsNotExist(err) && !info.IsDir() {
+			cfg, err = LoadConfig(configFile)
+			if err != nil {
+				log.Fatal(err.Error())
 			}
+			break
 		}
 	}
 
