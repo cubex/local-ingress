@@ -25,23 +25,18 @@ func main() {
 		if filepath.IsAbs(*configPath) {
 			// absolute path
 			configPaths = append(configPaths, *configPath)
-		} else {
-			// relative path (use CWD
-			cwd, err := os.Getwd()
-			if err == nil {
-				configPaths = append(configPaths, path.Join(cwd, *configPath))
-			}
+		} else if cwd, err := os.Getwd(); err == nil {
+			// relative path
+			configPaths = append(configPaths, path.Join(cwd, *configPath))
 		}
 	} else {
-		// no config specified, search in current directory
-		cwd, err := os.Getwd()
-		if err == nil {
+		if cwd, err := os.Getwd(); err == nil {
+			// no config specified, search in current directory
 			configPaths = append(configPaths, path.Join(cwd, "config.yaml"))
 		}
 
-		// search in binary directory
-		binPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err == nil {
+		if binPath, err := filepath.Abs(filepath.Dir(os.Args[0])); err == nil {
+			// search in binary directory
 			configPaths = append(configPaths, path.Join(binPath, "config.yaml"))
 		}
 	}
