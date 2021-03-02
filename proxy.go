@@ -50,7 +50,12 @@ func (p *Proxy) Director(r *http.Request) {
 				r.URL.Scheme = remoteUrl.Scheme
 			}
 		} else {
-			r.URL.Host = strings.Replace(r.Host, p.c.ListenAddress, ":"+usePort, 1)
+			targetHost := r.Host
+			if !strings.Contains(targetHost, ":") {
+				srv := r.Context().Value(http.ServerContextKey).(*http.Server)
+				targetHost = targetHost + srv.Addr
+			}
+			r.URL.Host = strings.Replace(targetHost, p.c.ListenAddress, ":"+usePort, 1)
 		}
 	} else {
 		log.Print(r.Host, " is not a supported host")
