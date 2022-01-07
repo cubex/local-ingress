@@ -1,11 +1,15 @@
 package main
 
 import (
+	"errors"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/user"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -27,8 +31,8 @@ func (c *Config) reload() error {
 
 	err = yaml.Unmarshal(contents, c)
 	if err == nil && c.Tls {
-		c.TlsCertFile, _ = filepath.Abs(path.Join(filepath.Dir(c.file), c.TlsCertFile))
-		c.TlsKeyFile, _ = filepath.Abs(path.Join(filepath.Dir(c.file), c.TlsKeyFile))
+		c.TlsCertFile = resolvePath(c.TlsCertFile, c.file)
+		c.TlsKeyFile = resolvePath(c.TlsKeyFile, c.file)
 	}
 	return err
 }
@@ -48,4 +52,21 @@ func LoadConfig(configFile string) (*Config, error) {
 	}(cfg)
 
 	return cfg, err
+}
+
+func resolvePath(checkPath string, configPath string) string {
+	if checkPath == "~" || strings.HasPrefix(checkPath, "~/") {
+		usr, _ := user.Current()
+		checkPath = path.Join(usr.HomeDir, checkPath[1:])
+	}
+
+	if !filepath.IsAbs(checkPath) {
+		checkPath, _ = filepath.Abs(path.Join(filepath.Dir(configPath), checkPath))
+	}
+
+	if _, err := os.Stat(checkPath); errors.Is(err, os.ErrNotExist) {
+		log.Fatal(checkPath + ": file does not exist")
+	}
+
+	return checkPath
 }
