@@ -1,9 +1,10 @@
 listenAddress: ":8880"
-tls: true
 gzip: true
+tls: true
 certFile: fullchain.pem
 keyFile: privkey.pem
+tunnel: # <user>@<server>:<sshPort>:<publishPort>
 hostMap:
-  www.cubex-local.com:  "8888"
-  live.cubex-local.com:  "https://www.cubex.io"
-  "fortifi.*\\.cubex\\-local\\.com":  "9090"
+  www.cubex-local.com: "8888"
+  live.cubex-local.com: "https://www.cubex.io"
+  "fortifi.*\\.cubex\\-local\\.com": "9090"
