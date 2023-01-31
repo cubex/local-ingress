@@ -2,15 +2,14 @@ package main
 
 import (
 	"errors"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -20,20 +19,24 @@ type Config struct {
 	Tls           bool              `yaml:"tls"`
 	TlsCertFile   string            `yaml:"certFile"`
 	TlsKeyFile    string            `yaml:"keyFile"`
+	Tunnel        string            `yaml:"tunnel"`
 	file          string
 }
 
 func (c *Config) reload() error {
-	contents, err := ioutil.ReadFile(c.file)
+	contents, err := os.ReadFile(c.file)
 	if err != nil {
 		return err
 	}
 
 	err = yaml.Unmarshal(contents, c)
-	if err == nil && c.Tls {
-		c.TlsCertFile = resolvePath(c.TlsCertFile, c.file)
-		c.TlsKeyFile = resolvePath(c.TlsKeyFile, c.file)
+	if err == nil {
+		if c.Tls {
+			c.TlsCertFile = resolvePath(c.TlsCertFile, c.file)
+			c.TlsKeyFile = resolvePath(c.TlsKeyFile, c.file)
+		}
 	}
+
 	return err
 }
 
@@ -44,9 +47,7 @@ func LoadConfig(configFile string) (*Config, error) {
 	go func(c *Config) {
 		for {
 			err := c.reload()
-			if err != nil {
-				log.Print(err)
-			}
+			logs.FatalIf(err, "reloading content")
 			time.Sleep(time.Second * 10)
 		}
 	}(cfg)
@@ -65,7 +66,7 @@ func resolvePath(checkPath string, configPath string) string {
 	}
 
 	if _, err := os.Stat(checkPath); errors.Is(err, os.ErrNotExist) {
-		log.Fatal(checkPath + ": file does not exist")
+		logs.Fatal(checkPath + ": file does not exist")
 	}
 
 	return checkPath

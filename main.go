@@ -1,12 +1,14 @@
 package main
 
 import (
-	cli "gopkg.in/alecthomas/kingpin.v2"
 	"log"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/packaged/logger/v2"
+	cli "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -15,6 +17,8 @@ var (
 
 // For testing purposes set this to false to disable the JWT check
 const EnableAuthCheck = true
+
+var logs = logger.DevelopmentInstance()
 
 func main() {
 	cli.Parse()
@@ -56,6 +60,8 @@ func main() {
 	if cfg == nil {
 		log.Fatal("Config file not found")
 	}
+
+	go startSshTunnel(cfg)
 
 	p := NewProxy(cfg)
 	httpServer := http.Server{Addr: cfg.ListenAddress, Handler: p}
