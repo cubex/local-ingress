@@ -6,11 +6,11 @@ PLATFORMS="$PLATFORMS linux/amd64 linux/386"
 
 type setopt >/dev/null 2>&1
 
-SCRIPT_NAME=`basename "$0"`
+SCRIPT_NAME=$(basename "$0")
 FAILURES=""
-SOURCE_FILE=`echo $@ | sed 's/\.go//'`
+SOURCE_FILE=$(echo $@ | sed 's/\.go//')
 CURRENT_DIRECTORY=${PWD##*/}
-OUTPUT="dist"
+OUTPUT="dist/bin"
 
 for PLATFORM in $PLATFORMS; do
   GOOS=${PLATFORM%/*}
@@ -19,8 +19,7 @@ for PLATFORM in $PLATFORMS; do
   GOOSDISP=${GOOS}
   if [[ "${GOOSDISP}" == "darwin" ]]; then GOOSDISP="mac"; fi
 
-  BIN_FILENAME="${OUTPUT}/${GOOSDISP}/local-ingress"
-  if [[ "${GOARCH}" != "amd64" ]]; then BIN_FILENAME="${BIN_FILENAME}-${GOARCH}"; fi
+  BIN_FILENAME="${OUTPUT}/${GOOSDISP}-local-ingress-${GOARCH}"
   if [[ "${GOOS}" == "windows" ]]; then BIN_FILENAME="${BIN_FILENAME}.exe"; fi
   CMD="GOOS=${GOOS} GOARCH=${GOARCH} go build -o ${BIN_FILENAME} $@"
   echo "${CMD}"

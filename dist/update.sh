@@ -2,16 +2,16 @@
 
 platform='windows'
 ext=""
-unamestr=`uname`
+unamestr=$(uname)
 if [[ "$unamestr" == 'Linux' ]]; then
-   platform='linux'
+  platform='linux'
 elif [[ "$unamestr" == 'Darwin' ]]; then
-   platform='mac'
+  platform='mac'
 else
-    ext=".exe"
+  ext=".exe"
 fi
 
 echo "Downloading Cubex Local-Ingress"
-curl -s -O https://raw.githubusercontent.com/cubex/local-ingress/master/dist/$platform/local-ingress$ext
+curl -s -O https://raw.githubusercontent.com/cubex/local-ingress/master/dist/bin/$platform-local-ingress$ext
 chmod +x local-ingress$ext
 echo "Downloaded local-ingress$ext"
