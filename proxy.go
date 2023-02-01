@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/packaged/logger/v2/ld"
 )
 
 type Proxy struct {
@@ -33,11 +34,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if p.c.Tls {
 			r.Header.Add("X-Forwarded-Proto", "https")
 		}
+		logs.Info("request", ld.URL(r.Host+r.RequestURI))
 		p.handler.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "The host you are trying to access has not yet been configured", http.StatusNotFound)
 	}
-
 }
 
 func (p *Proxy) Director(r *http.Request) {
