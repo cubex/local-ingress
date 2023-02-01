@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/packaged/logger/v2"
+	"github.com/packaged/logger/v2/ld"
 	cli "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -50,15 +50,13 @@ func main() {
 		info, err := os.Stat(configFile)
 		if !os.IsNotExist(err) && !info.IsDir() {
 			cfg, err = LoadConfig(configFile)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
+			logs.FatalIf(err, "loading config")
 			break
 		}
 	}
 
 	if cfg == nil {
-		log.Fatal("Config file not found")
+		logs.Fatal("Config file not found")
 	}
 
 	go startSshTunnel(cfg)
@@ -66,12 +64,12 @@ func main() {
 	p := NewProxy(cfg)
 	httpServer := http.Server{Addr: cfg.ListenAddress, Handler: p}
 
-	log.Printf("Listening on %s", cfg.ListenAddress)
+	logs.Debug("Listening", ld.TrustedString("host", cfg.ListenAddress))
 	if cfg.Tls {
-		log.Println("Serving with TLS")
+		logs.Debug("Serving with TLS")
 	}
 	if cfg.Tls {
-		log.Fatal(httpServer.ListenAndServeTLS(cfg.TlsCertFile, cfg.TlsKeyFile))
+		logs.FatalIf(httpServer.ListenAndServeTLS(cfg.TlsCertFile, cfg.TlsKeyFile), "serve")
 	}
-	log.Fatal(httpServer.ListenAndServe())
+	logs.FatalIf(httpServer.ListenAndServe(), "serve")
 }
