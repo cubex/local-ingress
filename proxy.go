@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/NYTimes/gziphandler"
-	"log"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/NYTimes/gziphandler"
 )
 
 type Proxy struct {
@@ -55,10 +56,14 @@ func (p *Proxy) Director(r *http.Request) {
 				srv := r.Context().Value(http.ServerContextKey).(*http.Server)
 				targetHost = targetHost + srv.Addr
 			}
-			r.URL.Host = strings.Replace(targetHost, p.c.ListenAddress, ":"+usePort, 1)
+			if p.c.Tunnel != "" {
+				r.URL.Host = "127.0.0.1:" + usePort
+			} else {
+				r.URL.Host = strings.Replace(targetHost, p.c.ListenAddress, ":"+usePort, 1)
+			}
 		}
 	} else {
-		log.Print(r.Host, " is not a supported host")
+		logs.Info(fmt.Sprintf("%s is not a supported host", r.Host))
 	}
 }
 
