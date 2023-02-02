@@ -44,25 +44,18 @@ func startSshTunnel(c *Config) {
 
 	logs.Info("listening on remote server", zap.String("host", listener.Addr().String()))
 
-	var local net.Conn
-	localConnected := false
 	for {
 		remote, err := listener.Accept()
 		logs.FatalIf(err, "error accepting connection")
 
-		if localConnected == false {
-			local, err = net.Dial("tcp", c.ListenAddress)
-			logs.FatalIf(err, "dialing local service")
-			localConnected = true
-		}
+		local, err := net.Dial("tcp", c.ListenAddress)
+		logs.FatalIf(err, "dialing local service")
 
-		if err = handleClient(local, remote); err != nil {
-			_ = local.Close()
-			localConnected = false
-			logs.ErrorIf(err, "dialing local service")
-		}
+		err = handleClient(local, remote)
+		logs.ErrorIf(err, "dialing local service")
 
 		_ = remote.Close()
+		_ = local.Close()
 	}
 }
 
