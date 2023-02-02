@@ -52,7 +52,7 @@ func startSshTunnel(c *Config) {
 		logs.FatalIf(err, "dialing local service")
 
 		err = handleClient(local, remote)
-		logs.ErrorIf(err, "dialing local service")
+		logs.ErrorIf(err, "handling transport")
 
 		_ = remote.Close()
 		_ = local.Close()
