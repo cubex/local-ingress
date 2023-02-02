@@ -8,20 +8,31 @@ import (
 
 	"github.com/packaged/logger/v2"
 	"github.com/packaged/logger/v2/ld"
+	"go.uber.org/zap"
 	cli "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	configPath = cli.Flag("config", "Path to the config yaml").Short('c').String()
+	configPath     = cli.Flag("config", "Path to the config yaml").Short('c').String()
+	devEnvironment = cli.Flag("development", "Development Environment").Short('d').Bool()
+	verboseLog     = cli.Flag("verbose", "Verbose logging").Short('v').Bool()
 )
 
-// For testing purposes set this to false to disable the JWT check
-const EnableAuthCheck = true
-
-var logs = logger.DevelopmentInstance()
+var logs *logger.Logger
 
 func main() {
 	cli.Parse()
+
+	var opts []logger.Option
+	if *verboseLog {
+		opts = append(opts, logger.Debug)
+	} else {
+		opts = append(opts, func(config *zap.Config) { logger.DisableStacktrace(config) })
+	}
+	if *devEnvironment {
+		opts = append(opts, logger.WithConsoleEncoding)
+	}
+	logs = logger.Instance(opts...)
 
 	var configPaths []string
 	if *configPath != "" {

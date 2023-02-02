@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/NYTimes/gziphandler"
@@ -20,7 +21,16 @@ type Proxy struct {
 
 func NewProxy(config *Config) *Proxy {
 	p := &Proxy{c: config}
-	p.P = &httputil.ReverseProxy{Director: p.Director}
+	p.P = &httputil.ReverseProxy{
+		Director: p.Director,
+		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
+			logs.Error("request", ld.TrustedString("error", err.Error()), ld.URL(req.Host+req.RequestURI))
+		},
+		ModifyResponse: func(r *http.Response) error {
+			logs.Info("response", ld.URL(r.Request.Host+r.Request.RequestURI), ld.TrustedString("status", r.Status), ld.TrustedString("code", strconv.Itoa(r.StatusCode)))
+			return nil
+		},
+	}
 	if config.GZip {
 		p.handler = gziphandler.GzipHandler(p.P)
 	} else {
@@ -34,7 +44,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if p.c.Tls {
 			r.Header.Add("X-Forwarded-Proto", "https")
 		}
-		logs.Info("request", ld.URL(r.Host+r.RequestURI))
 		p.handler.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "The host you are trying to access has not yet been configured", http.StatusNotFound)
