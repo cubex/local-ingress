@@ -13,14 +13,16 @@ import (
 )
 
 type Config struct {
-	HostMap       map[string]string `yaml:"hostMap"`
-	ListenAddress string            `yaml:"listenAddress"`
-	GZip          bool              `yaml:"gzip"`
-	Tls           bool              `yaml:"tls"`
-	TlsCertFile   string            `yaml:"certFile"`
-	TlsKeyFile    string            `yaml:"keyFile"`
-	Tunnel        string            `yaml:"tunnel"`
-	file          string
+	HostMap        map[string]string `yaml:"hostMap"`
+	ListenAddress  string            `yaml:"listenAddress"`
+	PrivateKeyPath string            `yaml:"privateKeyPath"`
+	PrivateKeyPass string            `yaml:"privateKeyPass"`
+	GZip           bool              `yaml:"gzip"`
+	Tls            bool              `yaml:"tls"`
+	TlsCertFile    string            `yaml:"certFile"`
+	TlsKeyFile     string            `yaml:"keyFile"`
+	Tunnel         string            `yaml:"tunnel"`
+	file           string
 }
 
 func (c *Config) reload() error {
