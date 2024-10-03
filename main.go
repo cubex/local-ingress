@@ -6,10 +6,10 @@ import (
 	"path"
 	"path/filepath"
 
+	cli "github.com/alecthomas/kingpin/v2"
 	"github.com/packaged/logger/v2"
 	"github.com/packaged/logger/v2/ld"
 	"go.uber.org/zap"
-	cli "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
