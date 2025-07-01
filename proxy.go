@@ -56,7 +56,6 @@ func (p *Proxy) Director(r *http.Request) {
 		if strings.ContainsAny(usePort, ":.") {
 			remoteUrl, _ := url.Parse(usePort)
 			r.URL.Host = remoteUrl.Host
-			r.Host = remoteUrl.Host
 			if remoteUrl.Scheme != "" {
 				r.URL.Scheme = remoteUrl.Scheme
 			}
