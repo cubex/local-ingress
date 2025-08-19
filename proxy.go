@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/packaged/logger/v2/ld"
+	"go.uber.org/zap"
 )
 
 type Proxy struct {
@@ -22,25 +22,26 @@ type Proxy struct {
 func NewProxy(config *Config) *Proxy {
 	p := &Proxy{c: config}
 	p.P = &httputil.ReverseProxy{
-		Director: p.Director,
+		Rewrite: p.Rewriter,
 		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
-			logs.Error("request", ld.TrustedString("error", err.Error()), ld.URL(req.Host+req.RequestURI))
+			logs.Error("error", ld.TrustedString("message", err.Error()), ld.URL(req.Host+req.RequestURI))
 		},
 		ModifyResponse: func(r *http.Response) error {
-			logs.Info("response", ld.URL(r.Request.Host+r.Request.RequestURI), ld.TrustedString("status", r.Status), ld.TrustedString("code", strconv.Itoa(r.StatusCode)))
+			if *verboseLog {
+				logs.Info("response", ld.URL(r.Request.Host+r.Request.RequestURI), ld.TrustedString("status", r.Status), ld.TrustedString("code", strconv.Itoa(r.StatusCode)))
+			}
 			return nil
 		},
 	}
+	p.handler = p.P
 	if config.GZip {
-		p.handler = gziphandler.GzipHandler(p.P)
-	} else {
-		p.handler = p.P
+		p.handler = gziphandler.GzipHandler(p.handler)
 	}
 	return p
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if _, hasPort := p.getPort(r.Host); hasPort {
+	if _, hasDestination := p.getDestination(r.Host); hasDestination {
 		if p.c.Tls {
 			r.Header.Add("X-Forwarded-Proto", "https")
 		}
@@ -50,41 +51,45 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Proxy) Director(r *http.Request) {
-	r.URL.Scheme = "http"
-	if usePort, hasPort := p.getPort(r.Host); hasPort {
-		if strings.ContainsAny(usePort, ":.") {
-			remoteUrl, _ := url.Parse(usePort)
-			r.URL.Host = remoteUrl.Host
-			if remoteUrl.Scheme != "" {
-				r.URL.Scheme = remoteUrl.Scheme
-			}
+func (p *Proxy) Rewriter(r *httputil.ProxyRequest) {
+	if useDestination, hasDestination := p.getDestination(r.In.Host); hasDestination {
+		logs.Info("request", zap.String("from", r.In.Host), zap.String("to", useDestination))
+		if strings.ContainsAny(useDestination, ":.") {
+			remoteUrl, _ := url.Parse(useDestination)
+			remoteUrl.JoinPath(r.In.URL.Path)
+			r.SetURL(remoteUrl)
 		} else {
-			targetHost := r.Host
-			if !strings.Contains(targetHost, ":") {
-				srv := r.Context().Value(http.ServerContextKey).(*http.Server)
-				targetHost = targetHost + srv.Addr
-			}
+			var targetHost string
 			if p.c.Tunnel != "" {
-				r.URL.Host = "127.0.0.1:" + usePort
+				targetHost = "127.0.0.1:" + useDestination
 			} else {
-				r.URL.Host = strings.Replace(targetHost, p.c.ListenAddress, ":"+usePort, 1)
+				targetHost = r.In.Host
+				if !strings.Contains(targetHost, ":") {
+					srv := r.In.Context().Value(http.ServerContextKey).(*http.Server)
+					targetHost = targetHost + srv.Addr
+				}
+				targetHost = strings.Replace(targetHost, p.c.ListenAddress, ":"+useDestination, 1)
 			}
+			remoteUrl, _ := url.Parse("http://" + targetHost)
+			remoteUrl.JoinPath(r.In.URL.Path)
+			r.SetURL(remoteUrl)
 		}
-	} else {
-		logs.Info(fmt.Sprintf("%s is not a supported host", r.Host))
+
+		// copy inbound first (from SetXForwarded docs)
+		r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
+		r.SetXForwarded()
 	}
 }
 
-func (p *Proxy) getPort(host string) (string, bool) {
+func (p *Proxy) getDestination(host string) (string, bool) {
 	baseHost := strings.Replace(host, p.c.ListenAddress, "", 1)
-	usePort, hasPort := p.c.HostMap[baseHost]
-	if !hasPort {
+	useDestination, hasDestination := p.c.HostMap[baseHost]
+	if !hasDestination {
 		for tryHost, tryPort := range p.c.HostMap {
 			if regexp.MustCompile(tryHost).MatchString(baseHost) {
 				return tryPort, true
 			}
 		}
 	}
-	return usePort, hasPort
+	return useDestination, hasDestination
 }

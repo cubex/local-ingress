@@ -68,6 +68,7 @@ func main() {
 
 	if cfg == nil {
 		logs.Fatal("Config file not found")
+		return
 	}
 
 	go startSshTunnel(cfg)
