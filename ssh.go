@@ -63,7 +63,7 @@ func startSshTunnel(c *Config) {
 		local, err := net.Dial("tcp", c.ListenAddress)
 		logs.FatalIf(err, "dialing local service")
 
-		if c.WebSockets {
+		if c.Streaming {
 			go func() {
 				err := handleClient(local, remote)
 				logs.ErrorIf(err, "handling transport")

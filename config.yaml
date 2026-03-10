@@ -3,6 +3,7 @@ gzip: true
 tls: true
 certFile: fullchain.pem
 keyFile: privkey.pem
+streaming: true
 tunnel: # <user>@<server>:<sshPort>:<publishPort>
 hostMap:
   www.cubex-local.com: "8888"
