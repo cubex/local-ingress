@@ -22,7 +22,8 @@ type Proxy struct {
 func NewProxy(config *Config) *Proxy {
 	p := &Proxy{c: config}
 	p.P = &httputil.ReverseProxy{
-		Rewrite: p.Rewriter,
+		Rewrite:       p.Rewriter,
+		FlushInterval: -1, // flush immediately for streaming (SSE/WebSocket)
 		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
 			logs.Error("error", ld.TrustedString("message", err.Error()), ld.URL(req.Host+req.RequestURI))
 		},
@@ -46,13 +47,16 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r.Header.Add("X-Forwarded-Proto", "https")
 		}
 
-		if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
-			if !p.c.WebSockets {
-				http.Error(w, "WebSocket connections are not enabled", http.StatusForbidden)
+		isWS := strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
+		isSSE := strings.Contains(r.Header.Get("Accept"), "text/event-stream")
+
+		if isWS || isSSE {
+			if !p.c.Streaming {
+				http.Error(w, "Streaming connections are not enabled", http.StatusForbidden)
 				return
 			}
-			// Bypass gzip for WebSocket upgrades — gziphandler wraps the
-			// ResponseWriter which prevents the TCP hijack that WebSocket needs.
+			// Bypass gzip — gziphandler wraps the ResponseWriter which
+			// prevents TCP hijack (WebSocket) and buffered flushing (SSE).
 			p.P.ServeHTTP(w, r)
 		} else {
 			p.handler.ServeHTTP(w, r)
