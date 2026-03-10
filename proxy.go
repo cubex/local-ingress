@@ -45,7 +45,18 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if p.c.Tls {
 			r.Header.Add("X-Forwarded-Proto", "https")
 		}
-		p.handler.ServeHTTP(w, r)
+
+		if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+			if !p.c.WebSockets {
+				http.Error(w, "WebSocket connections are not enabled", http.StatusForbidden)
+				return
+			}
+			// Bypass gzip for WebSocket upgrades — gziphandler wraps the
+			// ResponseWriter which prevents the TCP hijack that WebSocket needs.
+			p.P.ServeHTTP(w, r)
+		} else {
+			p.handler.ServeHTTP(w, r)
+		}
 	} else {
 		http.Error(w, "The host you are trying to access has not yet been configured", http.StatusNotFound)
 	}

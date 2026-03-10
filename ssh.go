@@ -63,11 +63,15 @@ func startSshTunnel(c *Config) {
 		local, err := net.Dial("tcp", c.ListenAddress)
 		logs.FatalIf(err, "dialing local service")
 
-		err = handleClient(local, remote)
-		logs.ErrorIf(err, "handling transport")
-
-		_ = remote.Close()
-		_ = local.Close()
+		if c.WebSockets {
+			go func() {
+				err := handleClient(local, remote)
+				logs.ErrorIf(err, "handling transport")
+			}()
+		} else {
+			err = handleClient(local, remote)
+			logs.ErrorIf(err, "handling transport")
+		}
 	}
 }
 
@@ -90,23 +94,30 @@ func withKey(privateKeyPath, privateKeyPassword string) (ssh.AuthMethod, error) 
 // Handle local client connections and tunnel data to the remote server
 // Will use io.Copy - http://golang.org/pkg/io/#Copy
 func handleClient(local net.Conn, remote net.Conn) error {
-	chDone := make(chan error)
+	chDone := make(chan error, 2)
 
 	// Start remote -> local data transfer
 	go func() {
 		_, err := io.Copy(local, remote)
-		logs.ErrorIf(err, "error while copy remote->local")
 		chDone <- err
 	}()
 
 	// Start local -> remote data transfer
 	go func() {
 		_, err := io.Copy(remote, local)
-		logs.ErrorIf(err, "error while copy local->remote")
 		chDone <- err
 	}()
 
-	return <-chDone
+	// Wait for the first copy to finish, then close both connections
+	// to unblock the other goroutine
+	err := <-chDone
+	_ = local.Close()
+	_ = remote.Close()
+
+	// Wait for the second goroutine to finish
+	<-chDone
+
+	return err
 }
 
 func signerFromPem(pemBytes []byte, password []byte) (ssh.Signer, error) {

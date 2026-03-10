@@ -22,6 +22,7 @@ type Config struct {
 	TlsCertFile    string            `yaml:"certFile"`
 	TlsKeyFile     string            `yaml:"keyFile"`
 	Tunnel         string            `yaml:"tunnel"`
+	WebSockets     bool              `yaml:"websockets"`
 	file           string
 }
 
