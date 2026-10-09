@@ -21,7 +21,11 @@ var (
 
 var logs *logger.Logger
 
+// version is set at build time by the Release workflow.
+var version = "dev"
+
 func main() {
+	cli.Version(version)
 	cli.Parse()
 
 	var opts []logger.Option

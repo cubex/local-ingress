@@ -45,7 +45,7 @@ func startSshTunnel(c *Config) {
 
 	listener := conn.listen(name, legacy.port)
 	defer func() { _ = listener.Close() }()
-	logs.Info("tunnel open", zap.String("url", "https://"+name+"."+host), zap.String("email", conn.email))
+	logs.Info("tunnel open", zap.String("url", "https://"+name+"."+host), zap.String("email", conn.email), zap.String("version", version))
 
 	if conn.email != "" {
 		go refreshTokens(c, conn.client, host)
