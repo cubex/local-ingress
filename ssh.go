@@ -31,6 +31,30 @@ var tunnelNamePattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$
 // whose host key is not pinned; it is only offered key auth and gets a TCP
 // port forward rather than a named tunnel.
 func startSshTunnel(c *Config) {
+	name, legacy, isLegacy := tunnelTarget(c)
+	if name == "" {
+		return
+	}
+
+	address := c.tunnelAddress()
+	host, _, err := net.SplitHostPort(address)
+	logs.FatalIf(err, "parsing tunnel address")
+
+	conn := dialTunnelServer(c, address, host, legacy, isLegacy)
+	defer func() { _ = conn.client.Close() }()
+
+	listener := conn.listen(name, legacy.port)
+	defer func() { _ = listener.Close() }()
+	logs.Info("tunnel open", zap.String("url", "https://"+name+"."+host), zap.String("email", conn.email))
+
+	if conn.email != "" {
+		go refreshTokens(c, conn.client, host)
+	}
+	serveTunnel(c, listener)
+}
+
+// tunnelTarget returns the name to publish, or "" when tunnelling is off.
+func tunnelTarget(c *Config) (string, legacyTunnel, bool) {
 	name := c.tunnelName()
 	legacy, isLegacy := c.legacyTunnel()
 	if isLegacy {
@@ -39,21 +63,24 @@ func startSshTunnel(c *Config) {
 		}
 		logs.Warn("tunnel uses the old format; replace it with `tunnelName: " + name + "`")
 	}
-	if name == "" {
-		return
-	}
-	if !tunnelNamePattern.MatchString(name) {
+	if name != "" && !tunnelNamePattern.MatchString(name) {
 		logs.Fatal("tunnel name must be lowercase letters, digits and hyphens: " + name)
 	}
+	return name, legacy, isLegacy
+}
 
-	address := c.tunnelAddress()
-	host, _, err := net.SplitHostPort(address)
-	logs.FatalIf(err, "parsing tunnel address")
+type tunnelConn struct {
+	client *ssh.Client
+	// verified is set when the server presented the pinned host key, which
+	// is required for Google sign-in and named tunnels.
+	verified bool
+	// email is the Google account signed in with, if any.
+	email string
+}
+
+func dialTunnelServer(c *Config, address, host string, legacy legacyTunnel, isLegacy bool) *tunnelConn {
+	conn := &tunnelConn{}
 	expectedHostKey := c.tunnelHostKey(host)
-
-	ctx := context.Background()
-	verified := false
-	email := ""
 
 	user := "tunnel"
 	if isLegacy {
@@ -65,22 +92,23 @@ func startSshTunnel(c *Config) {
 	}
 	// Last, because an error from this callback ends authentication.
 	auth = append(auth, ssh.PasswordCallback(func() (string, error) {
-		if !verified {
+		if !conn.verified {
 			return "", errors.New("not sending Google tokens to a server whose host key is not pinned; set tunnelHostKey")
 		}
-		password, e, err := tunnelCredentials(ctx, c, host)
-		email = e
+		password, email, err := tunnelCredentials(context.Background(), c, host)
+		conn.email = email
 		return password, err
 	}))
 
-	sshClient, err := ssh.Dial("tcp", address, &ssh.ClientConfig{
+	var err error
+	conn.client, err = ssh.Dial("tcp", address, &ssh.ClientConfig{
 		User: user,
 		Auth: auth,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			fp := ssh.FingerprintSHA256(key)
 			switch {
 			case expectedHostKey != "" && fp == expectedHostKey:
-				verified = true
+				conn.verified = true
 				return nil
 			case isLegacy:
 				return nil
@@ -90,38 +118,38 @@ func startSshTunnel(c *Config) {
 		},
 	})
 	logs.FatalIf(err, "connecting to tunnel server")
-	defer func() { _ = sshClient.Close() }()
+	return conn
+}
 
-	var listener net.Listener
-	if verified {
-		listener, err = sshClient.ListenUnix(name)
-		if err != nil {
-			logs.Fatal("tunnel name " + name + " was refused: it belongs to someone else")
-		}
-	} else {
-		listener, err = sshClient.Listen("tcp", "0.0.0.0:"+legacy.port)
+// listen opens the named tunnel, or the legacy server's TCP port forward.
+func (t *tunnelConn) listen(name, legacyPort string) net.Listener {
+	if !t.verified {
+		listener, err := t.client.Listen("tcp", "0.0.0.0:"+legacyPort)
 		logs.FatalIf(err, "opening port on remote server")
+		return listener
 	}
-	defer func() { _ = listener.Close() }()
+	listener, err := t.client.ListenUnix(name)
+	if err != nil {
+		logs.Fatal("tunnel name " + name + " was refused: it belongs to someone else")
+	}
+	return listener
+}
 
-	logs.Info("tunnel open", zap.String("url", "https://"+name+"."+host), zap.String("email", email))
-
-	if email != "" {
-		go func() {
-			for range time.Tick(45 * time.Minute) {
-				password, _, err := tunnelCredentials(ctx, c, host)
-				if err == nil {
-					payload := ssh.Marshal(&struct{ Credentials string }{password})
-					var ok bool
-					if ok, _, err = sshClient.SendRequest(refreshRequest, true, payload); err == nil && !ok {
-						err = errors.New("server refused the new tokens")
-					}
-				}
-				logs.ErrorIf(err, "refreshing tunnel tokens")
+func refreshTokens(c *Config, client *ssh.Client, host string) {
+	for range time.Tick(45 * time.Minute) {
+		password, _, err := tunnelCredentials(context.Background(), c, host)
+		if err == nil {
+			payload := ssh.Marshal(&struct{ Credentials string }{password})
+			var ok bool
+			if ok, _, err = client.SendRequest(refreshRequest, true, payload); err == nil && !ok {
+				err = errors.New("server refused the new tokens")
 			}
-		}()
+		}
+		logs.ErrorIf(err, "refreshing tunnel tokens")
 	}
+}
 
+func serveTunnel(c *Config, listener net.Listener) {
 	for {
 		remote, err := listener.Accept()
 		logs.FatalIf(err, "error accepting connection")
