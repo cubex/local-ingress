@@ -13,7 +13,7 @@ case "$(uname -m)" in
 esac
 
 echo "Downloading Cubex Local-Ingress ($os/$arch)"
-curl -sfL -o "local-ingress$ext" "https://github.com/cubex/local-ingress/releases/latest/download/local-ingress-$os-$arch$ext" || {
+curl -sfL --proto =https --proto-redir =https -o "local-ingress$ext" "https://github.com/cubex/local-ingress/releases/latest/download/local-ingress-$os-$arch$ext" || {
   echo "Download failed"
   exit 1
 }

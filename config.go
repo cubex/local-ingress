@@ -28,8 +28,8 @@ type Config struct {
 	PrivateKeyPath string `yaml:"privateKeyPath"`
 	PrivateKeyPass string `yaml:"privateKeyPass"`
 	// GoogleCredentials is the credential file used to sign in to the tunnel
-	// server: authorized_user (from gcp-dev-login) or impersonated_service_account
-	// (dev-services-cred.json, from gcp-dev-cred).
+	// server, authorized_user or impersonated_service_account; defaults to
+	// $GOOGLE_APPLICATION_CREDENTIALS.
 	GoogleCredentials string `yaml:"googleCredentials"`
 	// ServiceAccount must be impersonable by the user; the tunnel server
 	// only admits users who can mint ID tokens for it. Defaults to the
@@ -57,10 +57,8 @@ func (c *Config) reload() error {
 }
 
 const (
-	defaultTunnel            = "cubex.cloud:2222"
-	cubexCloudHostKey        = "SHA256:y9KiijJT2OuLsFRPmr2sEiBmwfwRXzMoeyG5xRTcBL8"
-	defaultGoogleCredentials = "~/.config/chargehive/devenv-source.json"
-	defaultServiceAccount    = "dev-users@dev-services-389814.iam.gserviceaccount.com"
+	defaultTunnel     = "cubex.cloud:2222"
+	cubexCloudHostKey = "SHA256:y9KiijJT2OuLsFRPmr2sEiBmwfwRXzMoeyG5xRTcBL8"
 )
 
 // legacyTunnelNames maps the publish ports of the old tunnel format,
@@ -135,7 +133,7 @@ func (c *Config) tunnelHostKey(host string) string {
 }
 
 func (c *Config) googleCredentials() string {
-	return expandHome(withDefault(c.GoogleCredentials, defaultGoogleCredentials))
+	return expandHome(withDefault(c.GoogleCredentials, os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")))
 }
 
 func withDefault(value, fallback string) string {

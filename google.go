@@ -21,9 +21,12 @@ import (
 // https://<host>/<email>, separated by a space.
 func tunnelCredentials(ctx context.Context, c *Config, host string) (password, email string, err error) {
 	credsPath := c.googleCredentials()
+	if credsPath == "" {
+		return "", "", errors.New("set googleCredentials to sign in with Google")
+	}
 	data, err := os.ReadFile(credsPath)
 	if err != nil {
-		return "", "", fmt.Errorf("reading Google credentials (run `gcp-dev-cred --login`): %w", err)
+		return "", "", fmt.Errorf("reading Google credentials: %w", err)
 	}
 	type authorizedUser struct {
 		Type         string `json:"type"`
@@ -33,8 +36,8 @@ func tunnelCredentials(ctx context.Context, c *Config, host string) (password, e
 	}
 	var file struct {
 		authorizedUser
-		// impersonated_service_account files, as mounted into devenv pods,
-		// wrap the user's credential and name the service account
+		// impersonated_service_account files wrap the user's credential and
+		// name the service account
 		SourceCredentials authorizedUser `json:"source_credentials"`
 		ImpersonationURL  string         `json:"service_account_impersonation_url"`
 	}
@@ -53,14 +56,14 @@ func tunnelCredentials(ctx context.Context, c *Config, host string) (password, e
 		return "", "", fmt.Errorf("%s: expected an authorized_user or impersonated_service_account credential, got %q", credsPath, file.Type)
 	}
 	if serviceAccount == "" {
-		serviceAccount = defaultServiceAccount
+		return "", "", errors.New("set serviceAccount, or use an impersonated_service_account credential")
 	}
 
 	// a fresh token source refreshes immediately, so the ID token has its full lifetime
 	conf := &oauth2.Config{ClientID: creds.ClientID, ClientSecret: creds.ClientSecret, Endpoint: google.Endpoint}
 	token, err := conf.TokenSource(ctx, &oauth2.Token{RefreshToken: creds.RefreshToken}).Token()
 	if err != nil {
-		return "", "", fmt.Errorf("refreshing Google credentials (run `gcp-dev-cred --login`): %w", err)
+		return "", "", fmt.Errorf("refreshing Google credentials: %w", err)
 	}
 	userToken, _ := token.Extra("id_token").(string)
 	if userToken == "" {
@@ -95,7 +98,7 @@ func serviceAccountIDToken(ctx context.Context, token *oauth2.Token, serviceAcco
 	defer func() { _ = resp.Body.Close() }()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("impersonating %s (are you in gcp-developers@ or gcp-testers@?): %s: %s", serviceAccount, resp.Status, respBody)
+		return "", fmt.Errorf("impersonating %s: %s: %s", serviceAccount, resp.Status, respBody)
 	}
 
 	var out struct {

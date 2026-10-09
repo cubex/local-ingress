@@ -1,9 +1,8 @@
 # Local Ingress
 
 A reverse proxy for local development. It routes each request by hostname to a local port or URL,
-and can publish itself on the internet through the [cubex.cloud tunnel
-server](https://github.com/lucidcube/local-ingress-server), so webhooks and other people can reach
-services running on your machine.
+and can publish itself on the internet through the cubex.cloud tunnel server, so webhooks and other
+people can reach services running on your machine.
 
 ```
 curl -s https://raw.githubusercontent.com/cubex/local-ingress/master/install.sh | bash
@@ -22,9 +21,8 @@ through the SSH connection to this proxy, which routes them like any other. The 
 TLS with wildcard certificates.
 
 The client signs in with an SSH key if the server accepts it, otherwise with Google: your own ID
-token plus one for a service account that only `gcp-developers@` and `gcp-testers@` can
-impersonate. Each person owns one name; the first to use a name claims it, and choosing a new name
-releases the old one.
+token plus one for a service account you can impersonate, which the server requires. Each person
+owns one name; the first to use a name claims it, and choosing a new name releases the old one.
 
 ## Configuration
 
@@ -47,8 +45,8 @@ hostMap:
 | `tls`, `certFile`, `keyFile` | Serve HTTPS locally with the given certificate. |
 | `tunnelName` | Name to publish as `<name>.cubex.cloud`; leave empty to run without a tunnel. Overridden by `--name`. |
 | `tunnel` | Tunnel server, default `cubex.cloud:2222`. |
-| `googleCredentials` | Credential for Google sign-in: an `authorized_user` file from `gcp-dev-login` (default `~/.config/chargehive/devenv-source.json`) or an `impersonated_service_account` file such as `dev-services-cred.json`. |
-| `serviceAccount` | Service account to impersonate. Defaults to the one named in an `impersonated_service_account` credential, else `dev-users@dev-services-389814`. |
+| `googleCredentials` | Credential file for Google sign-in, `authorized_user` or `impersonated_service_account`. Defaults to `$GOOGLE_APPLICATION_CREDENTIALS`. |
+| `serviceAccount` | Service account to impersonate. Defaults to the one named in an `impersonated_service_account` credential. |
 | `privateKeyPath`, `privateKeyPass` | SSH key for key sign-in; otherwise ssh-agent is used if available. |
 | `tunnelHostKey` | The tunnel server's SHA256 host key fingerprint, built in for cubex.cloud. Google tokens are only sent to a server presenting it. |
 
