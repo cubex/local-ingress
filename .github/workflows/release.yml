@@ -1,0 +1,30 @@
+name: Release
+
+# Builds the client for each platform and attaches the binaries to the
+# release, where dist/update.sh downloads them from.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Build
+        run: |
+          for platform in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/386 windows/amd64 windows/386; do
+            os=${platform%/*} arch=${platform#*/} ext=""
+            [ "$os" = windows ] && ext=.exe
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w" -o "out/local-ingress-$os-$arch$ext" .
+          done
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" out/* --clobber

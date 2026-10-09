@@ -16,6 +16,7 @@ var (
 	configPath     = cli.Flag("config", "Path to the config yaml").Short('c').String()
 	devEnvironment = cli.Flag("development", "Development Environment").Short('d').Bool()
 	verboseLog     = cli.Flag("verbose", "Verbose logging").Short('v').Bool()
+	nameFlag       = cli.Flag("name", "Tunnel name to publish as <name>.cubex.cloud, overriding tunnelName").Short('n').String()
 )
 
 var logs *logger.Logger

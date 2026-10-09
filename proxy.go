@@ -75,7 +75,7 @@ func (p *Proxy) Rewriter(r *httputil.ProxyRequest) {
 			r.SetURL(remoteUrl)
 		} else {
 			var targetHost string
-			if p.c.Tunnel != "" {
+			if p.c.tunnelName() != "" {
 				targetHost = "127.0.0.1:" + useDestination
 			} else {
 				targetHost = r.In.Host
@@ -96,9 +96,19 @@ func (p *Proxy) Rewriter(r *httputil.ProxyRequest) {
 	}
 }
 
+// getDestination looks up host in hostMap: as a full hostname, then for a
+// tunnel host <prefix>.<tunnelName>.<server domain> as just <prefix>, then
+// against each key as a regular expression.
 func (p *Proxy) getDestination(host string) (string, bool) {
 	baseHost := strings.Replace(host, p.c.ListenAddress, "", 1)
 	useDestination, hasDestination := p.c.HostMap[baseHost]
+	if !hasDestination {
+		if prefix, ok := p.c.tunnelPrefix(baseHost); ok {
+			if useDestination, hasDestination = p.c.HostMap[prefix]; hasDestination {
+				return useDestination, true
+			}
+		}
+	}
 	if !hasDestination {
 		for tryHost, tryPort := range p.c.HostMap {
 			if regexp.MustCompile(tryHost).MatchString(baseHost) {

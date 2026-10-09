@@ -4,7 +4,7 @@ tls: true
 certFile: fullchain.pem
 keyFile: privkey.pem
 streaming: true
-tunnel: # <user>@<server>:<sshPort>:<publishPort>
+tunnelName: # publishes https://<name>.cubex.cloud and https://*.<name>.cubex.cloud
 hostMap:
   www.cubex-local.com: "8888"
   live.cubex-local.com: "https://www.cubex.io"
