@@ -11,7 +11,12 @@ else
     ext=".exe"
 fi
 
+suffix=""
+if [[ "$platform" == 'mac' && `uname -m` == 'arm64' ]]; then
+   suffix="-arm64"
+fi
+
 echo "Downloading Cubex Local-Ingress"
-curl -s -O https://raw.githubusercontent.com/cubex/local-ingress/master/dist/$platform/local-ingress$ext
+curl -s -o local-ingress$ext https://raw.githubusercontent.com/cubex/local-ingress/master/dist/$platform/local-ingress$suffix$ext
 chmod +x local-ingress$ext
 echo "Downloaded local-ingress$ext"

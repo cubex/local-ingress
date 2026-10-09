@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PLATFORMS="darwin/amd64"
+PLATFORMS="darwin/amd64 darwin/arm64"
 PLATFORMS="$PLATFORMS windows/amd64 windows/386"
 PLATFORMS="$PLATFORMS linux/amd64 linux/386"
 
