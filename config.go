@@ -36,6 +36,7 @@ type Config struct {
 	// account named in an impersonated_service_account credential.
 	ServiceAccount string `yaml:"serviceAccount"`
 	Streaming      bool   `yaml:"streaming"`
+	PreserveHost   bool   `yaml:"preserveHost"`
 	file           string
 }
 

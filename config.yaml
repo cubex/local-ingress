@@ -4,6 +4,7 @@ tls: true
 certFile: fullchain.pem
 keyFile: privkey.pem
 streaming: true
+preserveHost: false # send the inbound Host upstream instead of the destination's host
 tunnelName: # publishes https://<name>.cubex.cloud and https://*.<name>.cubex.cloud
 hostMap:
   www.cubex-local.com: "8888"
