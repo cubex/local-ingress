@@ -13,7 +13,8 @@ Run `./update.sh` to update, and `./local-ingress` (or `-c path/to/config.yaml`)
 
 ## How it works
 
-Requests arrive on `listenAddress` and are matched against `hostMap` by their `Host` header.
+Requests arrive on `listenAddress` and are matched against `hostMap` by their `Host` header. The
+destination receives that same `Host` header, and `X-Forwarded-Host` carries it too.
 
 With `tunnelName: tk`, the client also connects to the tunnel server over SSH and publishes itself
 as `https://tk.cubex.cloud` and `https://*.tk.cubex.cloud`. Requests to those hosts come back
@@ -42,7 +43,6 @@ hostMap:
 | `hostMap` | Hostname to destination. A key matches a full hostname, then the prefix of a tunnel host (`demo` for `demo.tk.cubex.cloud`), then as a regular expression. A destination is a port or a URL. |
 | `gzip` | Compress responses. |
 | `streaming` | Allow WebSocket and server-sent event connections, and serve tunnel connections concurrently. |
-| `preserveHost` | Send the request's own Host header upstream instead of the destination's host, for port and URL destinations. `X-Forwarded-Host` carries it either way. |
 | `tls`, `certFile`, `keyFile` | Serve HTTPS locally with the given certificate. |
 | `tunnelName` | Name to publish as `<name>.cubex.cloud`; leave empty to run without a tunnel. Overridden by `--name`. |
 | `tunnel` | Tunnel server, default `cubex.cloud:2222`. |

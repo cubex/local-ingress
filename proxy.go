@@ -90,9 +90,7 @@ func (p *Proxy) Rewriter(r *httputil.ProxyRequest) {
 			r.SetURL(remoteUrl)
 		}
 
-		if p.c.PreserveHost {
-			r.Out.Host = r.In.Host
-		}
+		r.Out.Host = r.In.Host
 
 		// copy inbound first (from SetXForwarded docs)
 		r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
