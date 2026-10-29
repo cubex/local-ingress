@@ -13,7 +13,8 @@ Run `./update.sh` to update, and `./local-ingress` (or `-c path/to/config.yaml`)
 
 ## How it works
 
-Requests arrive on `listenAddress` and are matched against `hostMap` by their `Host` header.
+Requests arrive on `listenAddress` and are matched against `hostMap` by their `Host` header. The
+destination receives that same `Host` header, and `X-Forwarded-Host` carries it too.
 
 With `tunnelName: tk`, the client also connects to the tunnel server over SSH and publishes itself
 as `https://tk.cubex.cloud` and `https://*.tk.cubex.cloud`. Requests to those hosts come back
